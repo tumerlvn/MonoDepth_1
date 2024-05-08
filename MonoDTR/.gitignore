@@ -1,0 +1,4 @@
+data/KITTI/object/*
+new_training/*
+workdirs/MonoDTR/output/*
+workdirs/MonoDTR/checkpoint/MonoDTR_latest.pth
