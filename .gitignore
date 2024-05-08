@@ -1,0 +1,12 @@
+
+
+datasets/
+Depth-Anything-HugginFace/
+Depth-Anything/assets/
+idisc/nyu/
+idisc/idisc/models/checkpoints/
+MonoDTR/data/
+MonoDTR/new_training/
+MonoDTR/workdirs/MonoDTR/checkpoint/MonoDTR_latest.pth
+yolov5/tmp/
+yolov5/runs/
