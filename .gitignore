@@ -11,3 +11,4 @@ MonoDTR/workdirs/MonoDTR/checkpoint/MonoDTR_latest.pth
 yolov5/tmp/
 yolov5/runs/
 MonoDTR_latest.pth
+Depth-Anything/frame_copy_depth.png
