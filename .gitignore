@@ -1,8 +1,10 @@
 
-
+DA-2K/
 datasets/
 Depth-Anything-HugginFace/
 Depth-Anything/assets/
+Depth-Anything/tmp/
+Depth-Anything/metric_depth/data
 idisc/nyu/
 idisc/idisc/models/checkpoints/
 MonoDTR/data/
@@ -10,5 +12,11 @@ MonoDTR/new_training/
 MonoDTR/workdirs/MonoDTR/checkpoint/MonoDTR_latest.pth
 yolov5/tmp/
 yolov5/runs/
-MonoDTR_latest.pth
+*.pth
+*.pt
+Depth-Anything-V2/metric_depth/exp
 Depth-Anything/frame_copy_depth.png
+Marigold/checkpoint
+Marigold/venvmarigold
+Depth-Anything-V2/da2venv
+__pycache__/

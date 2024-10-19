@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: minieigen
+Version: 0.5.4
+Summary: Wrap parts of Eigen3, c++ library for basic math and geometry.
+Home-page: https://github.com/eudoxos/minieigen
+Author: Václav Šmilauer
+Author-email: eu@doxos.eu
+Classifier: License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering :: Mathematics
+Classifier: Intended Audience :: Science/Research
+Classifier: Development Status :: 5 - Production/Stable
+
+
+A small wrapper for core parts of Eigen (http://eigen.tuxfamily.org), c++ library for linear algebra. It is mainly useful for inspecting c++ code which already uses eigen and boost::python. Supported types are Vectors (2,3,6 and dynamic-sized with integer, floating-point and complex values), Matrices (3x3, 6x6 and dynamic-sized with floating-point and complex values), Quaternions and 2d and 3d aligned boxes. Numerous methods are wrapped and the original API of Eigen is followed. The code compiles with a c++99 compiler. The documentation is at http://eudoxos.github.io/minieigen .
