@@ -1,0 +1,5 @@
+name: middlebury
+disp_name: middlebury_test_full
+dir: middlebury_processed
+filenames: data_split/middlebury/filenames.txt
+eigen_valid_mask: true

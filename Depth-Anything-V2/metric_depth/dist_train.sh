@@ -1,8 +1,8 @@
 #!/bin/bash
 now=$(date +"%Y%m%d_%H%M%S")
 
-epoch=1
-bs=1
+epoch=50
+bs=2
 gpus=1
 lr=0.000005
 encoder=vits
@@ -11,7 +11,7 @@ img_size=518
 min_depth=0.001
 max_depth=80 # 80 for virtual kitti, 20 for hypersim
 pretrained_from=../checkpoints/depth_anything_v2_${encoder}.pth
-save_path=exp/vkitti # exp/vkitti
+save_path=exp/vkitti # exp/vkitti exp/hypersim
 
 mkdir -p $save_path
 

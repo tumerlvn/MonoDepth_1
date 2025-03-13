@@ -1,0 +1,14 @@
+wandb
+./*.png
+__pycache__
+results
+*.npy
+*.png
+*.jpg
+index.*
+*.ckpt
+*.npy
+results/*
+data/*
+log_dir*
+checkpoints/*

@@ -20,10 +20,10 @@ if "__main__" == __name__:
     parser.add_argument(
         "--split_csv",
         type=str,
-        default="data/Hypersim/metadata_images_split_scene_v1.csv",
+        default="Marigold/data_split/hypersim/my_csv_split_val.csv",
     )
-    parser.add_argument("--dataset_dir", type=str, default="data/Hypersim/raw_data")
-    parser.add_argument("--output_dir", type=str, default="data/Hypersim/processed")
+    parser.add_argument("--dataset_dir", type=str, default="/media/tamerlan/Tamer/thesis/hypersim_uncompressed")
+    parser.add_argument("--output_dir", type=str, default="/media/tamerlan/Tamer/thesis/hypersim_processed")
 
     args = parser.parse_args()
 

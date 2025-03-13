@@ -139,7 +139,7 @@ def main():
             
             iters = epoch * len(trainloader) + i
             
-            lr = args.lr * (1 - iters / total_iters) ** 0.9
+            lr = args.lr * (1 - iters / total_iters) ** 0.7
             
             optimizer.param_groups[0]["lr"] = lr
             optimizer.param_groups[1]["lr"] = lr * 10.0
