@@ -41,6 +41,8 @@ parser.add_argument('--port', default=None, type=int)
 
 
 def main():
+
+    print("kdfd")
     args = parser.parse_args()
     
     warnings.simplefilter('ignore', np.RankWarning)
@@ -59,15 +61,11 @@ def main():
     cudnn.benchmark = True
     
     size = (args.img_size, args.img_size)
-    if args.dataset == 'hypersim':
-        trainset = Hypersim('dataset/splits/hypersim/train.txt', 'train', size=size)
-    elif args.dataset == 'vkitti':
-        trainset = VKITTI2('dataset/splits/vkitti2/train.txt', 'train', size=size)
-    else:
-        raise NotImplementedError
-    trainsampler = torch.utils.data.distributed.DistributedSampler(trainset)
-    trainloader = DataLoader(trainset, batch_size=args.bs, pin_memory=True, num_workers=4, drop_last=True, sampler=trainsampler)
-    
+
+
+    print("kdfd")
+
+
     if args.dataset == 'hypersim':
         valset = Hypersim('dataset/splits/hypersim/val.txt', 'val', size=size)
     elif args.dataset == 'vkitti':
@@ -90,132 +88,72 @@ def main():
     
     checkpoint = torch.load(args.pretrained_from, map_location='cpu')
 
-    start_epoch = checkpoint['epoch'] + 1
-
-
 
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
     model.cuda(local_rank)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank], broadcast_buffers=False,
                                                       output_device=local_rank, find_unused_parameters=True)
     
-    model.load_state_dict(checkpoint['model'])
+    if 'model' not in checkpoint:
+        model.load_state_dict(checkpoint)
+    else:
+        model.load_state_dict(checkpoint['model'])
 
-
-
-    criterion = SiLogLoss().cuda(local_rank)
-    
     optimizer = AdamW([{'params': [param for name, param in model.named_parameters() if 'pretrained' in name], 'lr': args.lr},
                        {'params': [param for name, param in model.named_parameters() if 'pretrained' not in name], 'lr': args.lr * 10.0}],
                       lr=args.lr, betas=(0.9, 0.999), weight_decay=0.01)
     optimizer.load_state_dict(checkpoint['optimizer'])
-    
-    total_iters = args.epochs * len(trainloader)
-    
-    # previous_best = {'d1': 0, 'd2': 0, 'd3': 0, 'abs_rel': 100, 'sq_rel': 100, 'rmse': 100, 'rmse_log': 100, 'log10': 100, 'silog': 100}
-    previous_best = checkpoint['previous_best']
 
-    for epoch in range(start_epoch, args.epochs):
-        if rank == 0:
-            logger.info('===========> Epoch: {:}/{:}, d1: {:.3f}, d2: {:.3f}, d3: {:.3f}'.format(epoch, args.epochs, previous_best['d1'], previous_best['d2'], previous_best['d3']))
-            logger.info('===========> Epoch: {:}/{:}, abs_rel: {:.3f}, sq_rel: {:.3f}, rmse: {:.3f}, rmse_log: {:.3f}, '
-                        'log10: {:.3f}, silog: {:.3f}'.format(
-                            epoch, args.epochs, previous_best['abs_rel'], previous_best['sq_rel'], previous_best['rmse'], 
-                            previous_best['rmse_log'], previous_best['log10'], previous_best['silog']))
+
+    print("kdfd")
+
+    
+    
+    model.eval()
+    
+    results = {'d1': torch.tensor([0.0]).cuda(), 'd2': torch.tensor([0.0]).cuda(), 'd3': torch.tensor([0.0]).cuda(), 
+                'abs_rel': torch.tensor([0.0]).cuda(), 'sq_rel': torch.tensor([0.0]).cuda(), 'rmse': torch.tensor([0.0]).cuda(), 
+                'rmse_log': torch.tensor([0.0]).cuda(), 'log10': torch.tensor([0.0]).cuda(), 'silog': torch.tensor([0.0]).cuda()}
+    nsamples = torch.tensor([0.0]).cuda()
+    
+    for i, sample in enumerate(valloader):
         
-        trainloader.sampler.set_epoch(epoch + 1)
+        img, depth, valid_mask = sample['image'].cuda().float(), sample['depth'].cuda()[0], sample['valid_mask'].cuda()[0]
         
-        model.train()
-        total_loss = 0
-        
-        for i, sample in enumerate(trainloader):
-            optimizer.zero_grad()
-            
-            img, depth, valid_mask = sample['image'].cuda(), sample['depth'].cuda(), sample['valid_mask'].cuda()
-            
-            if random.random() < 0.5:
-                img = img.flip(-1)
-                depth = depth.flip(-1)
-                valid_mask = valid_mask.flip(-1)
-            
+        with torch.no_grad():
             pred = model(img)
-            
-            loss = criterion(pred, depth, (valid_mask == 1) & (depth >= args.min_depth) & (depth <= args.max_depth))
-            
-            loss.backward()
-            optimizer.step()
-            
-            total_loss += loss.item()
-            
-            iters = epoch * len(trainloader) + i
-            
-            lr = args.lr * (1 - iters / total_iters) ** 0.7
-            
-            optimizer.param_groups[0]["lr"] = lr
-            optimizer.param_groups[1]["lr"] = lr * 10.0
-            
-            if rank == 0:
-                writer.add_scalar('train/loss', loss.item(), iters)
-            
-            if rank == 0 and i % 100 == 0:
-                logger.info('Iter: {}/{}, LR: {:.7f}, Loss: {:.3f}'.format(i, len(trainloader), optimizer.param_groups[0]['lr'], loss.item()))
+            pred = F.interpolate(pred[:, None], depth.shape[-2:], mode='bilinear', align_corners=True)[0, 0]
         
-        model.eval()
+        valid_mask = (valid_mask == 1) & (depth >= args.min_depth) & (depth <= args.max_depth)
         
-        results = {'d1': torch.tensor([0.0]).cuda(), 'd2': torch.tensor([0.0]).cuda(), 'd3': torch.tensor([0.0]).cuda(), 
-                   'abs_rel': torch.tensor([0.0]).cuda(), 'sq_rel': torch.tensor([0.0]).cuda(), 'rmse': torch.tensor([0.0]).cuda(), 
-                   'rmse_log': torch.tensor([0.0]).cuda(), 'log10': torch.tensor([0.0]).cuda(), 'silog': torch.tensor([0.0]).cuda()}
-        nsamples = torch.tensor([0.0]).cuda()
+        if valid_mask.sum() < 10:
+            continue
         
-        for i, sample in enumerate(valloader):
-            
-            img, depth, valid_mask = sample['image'].cuda().float(), sample['depth'].cuda()[0], sample['valid_mask'].cuda()[0]
-            
-            with torch.no_grad():
-                pred = model(img)
-                pred = F.interpolate(pred[:, None], depth.shape[-2:], mode='bilinear', align_corners=True)[0, 0]
-            
-            valid_mask = (valid_mask == 1) & (depth >= args.min_depth) & (depth <= args.max_depth)
-            
-            if valid_mask.sum() < 10:
-                continue
-            
-            cur_results = eval_depth(pred[valid_mask], depth[valid_mask])
-            
-            for k in results.keys():
-                results[k] += cur_results[k]
-            nsamples += 1
-        
-        torch.distributed.barrier()
+        cur_results = eval_depth(pred[valid_mask], depth[valid_mask])
         
         for k in results.keys():
-            dist.reduce(results[k], dst=0)
-        dist.reduce(nsamples, dst=0)
+            results[k] += cur_results[k]
+        nsamples += 1
+    
+    torch.distributed.barrier()
+    
+    for k in results.keys():
+        dist.reduce(results[k], dst=0)
+    dist.reduce(nsamples, dst=0)
+    
+    if rank == 0:
+        logger.info('==========================================================================================')
+        logger.info('{:>8}, {:>8}, {:>8}, {:>8}, {:>8}, {:>8}, {:>8}, {:>8}, {:>8}'.format(*tuple(results.keys())))
+        logger.info('{:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}'.format(*tuple([(v / nsamples).item() for v in results.values()])))
+        logger.info('==========================================================================================')
+        print()
         
-        if rank == 0:
-            logger.info('==========================================================================================')
-            logger.info('{:>8}, {:>8}, {:>8}, {:>8}, {:>8}, {:>8}, {:>8}, {:>8}, {:>8}'.format(*tuple(results.keys())))
-            logger.info('{:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}'.format(*tuple([(v / nsamples).item() for v in results.values()])))
-            logger.info('==========================================================================================')
-            print()
-            
-            for name, metric in results.items():
-                writer.add_scalar(f'eval/{name}', (metric / nsamples).item(), epoch)
-        
-        for k in results.keys():
-            if k in ['d1', 'd2', 'd3']:
-                previous_best[k] = max(previous_best[k], (results[k] / nsamples).item())
-            else:
-                previous_best[k] = min(previous_best[k], (results[k] / nsamples).item())
-        
-        if rank == 0:
-            checkpoint = {
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'epoch': epoch,
-                'previous_best': previous_best,
-            }
-            torch.save(checkpoint, os.path.join(args.save_path, 'latest.pth'))
+        for name, metric in results.items():
+            writer.add_scalar(f'eval/{name}', (metric / nsamples).item(), 1)
+    
+
+    
+
 
 
 if __name__ == '__main__':

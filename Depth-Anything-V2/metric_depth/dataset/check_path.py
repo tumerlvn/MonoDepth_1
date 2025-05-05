@@ -35,7 +35,7 @@ def check_paths(file_path):
 
 
 # Specify the path to the text file
-txt_file = '/home/tamerlan/Masters/thesis/Depth-Anything-V2/metric_depth/dataset/splits/kitti/val.txt'
+txt_file = '/home/tamerlan/Masters/thesis/Depth-Anything-V2/metric_depth/dataset/splits/vkitti2/train.txt'
 
 # Call the function to check paths
 check_paths(txt_file)
